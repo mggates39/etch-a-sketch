@@ -5,6 +5,8 @@ An electronic etch-a-sketch
 First cut is to just get the rotary enoder working. Then add a second encoder.  Finally the screen.  In this case
 it will be a 128x64 OLED as that is what I have.
 
+Got the initial wireing working and I noticed some inconsistencies with the data.  Reading on the forums, I found a fully interupt driven sample and tried it.
+
 
 ## Parts 
 - 1 Arduino Nano Every
@@ -24,4 +26,6 @@ Initially wire the rotary encoder to the Arduino
 | CLK | B closure | D2 |
 
 ## References ##
-Initial Rotary Encoder code came from [Turtorial of Rotary Encoder with Arduino](https://www.instructables.com/id/Tutorial-of-Rotary-Encoder-With-Arduino/)
+- Initial Rotary Encoder code came from [Turtorial of Rotary Encoder with Arduino](https://www.instructables.com/id/Tutorial-of-Rotary-Encoder-With-Arduino/)
+
+- Discussion of missing data from rotary encoder [Aduino Forums](https://forum.arduino.cc/index.php?topic=552990.0)
