@@ -46,9 +46,12 @@
 // =========================================================
 //                Pin Defines
 // =========================================================
-#define PIN_ENCODER_A 2
-#define PIN_ENCODER_B 3
-#define PIN_ENCODER_PB 4
+#define PIN_ENCODER_1_A 2
+#define PIN_ENCODER_1_B 3
+#define PIN_ENCODER_1_PB 4
+#define PIN_ENCODER_2_A 5
+#define PIN_ENCODER_2_B 6
+#define PIN_ENCODER_2_PB 7
 
 // =========================================================
 //                Constants
@@ -62,106 +65,202 @@ const int MIN_COUNT = 0;
 const unsigned long DDELAY = 200; // Number of uS for Debounce Delay
 #endif
 
-// =========================================================
-//                Parameters
-// =========================================================
-volatile byte encoder_direction = ENC_DIR_UNKNOWN;
-int da_count = MIN_COUNT;
-volatile int inc_dec = 0; // This serves both to modify the count AND to serve as an indication of a count change
 String graph = String(MAX_COUNT + 1);
+
+// =========================================================
+//                Parameters Encoder 1
+// =========================================================
+volatile byte encoder_direction_1 = ENC_DIR_UNKNOWN;
+int da_count_1 = 0;
+volatile int inc_dec_1 = 0; // This serves both to modify the count AND to serve as an indication of a count change
+
+// =========================================================
+//                Parameters Encoder 2
+// =========================================================
+volatile byte encoder_direction_2 = ENC_DIR_UNKNOWN;
+int da_count_2 = 0;
+volatile int inc_dec_2 = 0; // This serves both to modify the count AND to serve as an indication of a count change
 
 // =========================================================
 //                Function Prototypes
 // =========================================================
-inline void update_count();
+inline void update_count_1();
+inline void update_count_2();
 
 // =========================================================
 //                Interrupt Service Routines
+// One pair for each encoder
 // =========================================================
-void ISR_Encoder_A()
+void ISR_Encoder_1_A()
 {
 #if INCLUDE_DEBOUNCE_DELAY
   delayMicroseconds(DDELAY); // Debounce delay [without this, there is a slightly greater incidence of [very] infrequent, +/- 1 count glitches]
 #endif
 
-  if (digitalRead(PIN_ENCODER_A) != digitalRead(PIN_ENCODER_B)) // A != B
+  if (digitalRead(PIN_ENCODER_1_A) != digitalRead(PIN_ENCODER_1_B)) // A != B
   {
     // Then the rotation is in the first stage, and we now know that A changed first.
     // Thus this is a Clockwise rotation.
-    if (encoder_direction != ENC_DIR_CW)
+    if (encoder_direction_1 != ENC_DIR_CW)
     {
       // This is where rotation direction is determined
-      encoder_direction = ENC_DIR_CW;
+      encoder_direction_1 = ENC_DIR_CW;
     }
-    else if (encoder_direction == ENC_DIR_CW)
+    else if (encoder_direction_1 == ENC_DIR_CW)
     {
       // This is either a bounce, OR the shaft rotation reversed before the B switch changed, so
       // cancel any direction detection.
-      encoder_direction = ENC_DIR_UNKNOWN;
+      encoder_direction_1 = ENC_DIR_UNKNOWN;
     }
     else
     {
       // ERROR!!
-      encoder_direction = ENC_DIR_UNKNOWN;
+      encoder_direction_1 = ENC_DIR_UNKNOWN;
     }
   }
   else // A == B
   {
-    if (encoder_direction == ENC_DIR_CCW)
+    if (encoder_direction_1 == ENC_DIR_CCW)
     {
       // Then, this is the second half of a rotation.  Set the encoder direction to
       // unknown to set this up for the next rotation action.
-      encoder_direction = ENC_DIR_UNKNOWN;
+      encoder_direction_1 = ENC_DIR_UNKNOWN;
       // And, because this is a CCW rotation, decrement the count.
-      inc_dec = -1;
+      inc_dec_1 = -1;
     }
     else
     {
       // ERROR!!
-      encoder_direction = ENC_DIR_UNKNOWN;
+      encoder_direction_1 = ENC_DIR_UNKNOWN;
     }
   }
 }
 
-void ISR_Encoder_B()
+void ISR_Encoder_1_B()
 {
 #if INCLUDE_DEBOUNCE_DELAY
   delayMicroseconds(DDELAY); // Debounce delay [without this, there is a slightly greater incidence of [very] infrequent, +/- 1 count glitches]
 #endif
 
-  if (digitalRead(PIN_ENCODER_B) != digitalRead(PIN_ENCODER_A)) // A != B
+  if (digitalRead(PIN_ENCODER_1_B) != digitalRead(PIN_ENCODER_1_A)) // A != B
   {
-    if (encoder_direction != ENC_DIR_CCW)
+    if (encoder_direction_1 != ENC_DIR_CCW)
     {
       // This is where rotation direction is determined
-      encoder_direction = ENC_DIR_CCW;
+      encoder_direction_1 = ENC_DIR_CCW;
     }
-    else if (encoder_direction == ENC_DIR_CCW)
+    else if (encoder_direction_1 == ENC_DIR_CCW)
     {
       // This is either a bounce, OR the shaft rotation reversed before the B switch
       // changed, so cancel any direction detection.
-      encoder_direction = ENC_DIR_UNKNOWN;
+      encoder_direction_1 = ENC_DIR_UNKNOWN;
     }
     else
     {
       // ERROR!!
-      encoder_direction = ENC_DIR_UNKNOWN;
+      encoder_direction_1 = ENC_DIR_UNKNOWN;
     }
   }
   else // A == B
   {
-    if (encoder_direction == ENC_DIR_CW)
+    if (encoder_direction_1 == ENC_DIR_CW)
     {
-      encoder_direction = ENC_DIR_UNKNOWN;
-      inc_dec = 1;
+      encoder_direction_1 = ENC_DIR_UNKNOWN;
+      inc_dec_1 = 1;
     }
     else
     {
       // ERROR!!
-      encoder_direction = ENC_DIR_UNKNOWN;
+      encoder_direction_1 = ENC_DIR_UNKNOWN;
     }
   }
 }
+
+void ISR_Encoder_2_A()
+{
+#if INCLUDE_DEBOUNCE_DELAY
+  delayMicroseconds(DDELAY); // Debounce delay [without this, there is a slightly greater incidence of [very] infrequent, +/- 1 count glitches]
+#endif
+
+  if (digitalRead(PIN_ENCODER_2_A) != digitalRead(PIN_ENCODER_2_B)) // A != B
+  {
+    // Then the rotation is in the first stage, and we now know that A changed first.
+    // Thus this is a Clockwise rotation.
+    if (encoder_direction_2 != ENC_DIR_CW)
+    {
+      // This is where rotation direction is determined
+      encoder_direction_2 = ENC_DIR_CW;
+    }
+    else if (encoder_direction_2 == ENC_DIR_CW)
+    {
+      // This is either a bounce, OR the shaft rotation reversed before the B switch changed, so
+      // cancel any direction detection.
+      encoder_direction_2 = ENC_DIR_UNKNOWN;
+    }
+    else
+    {
+      // ERROR!!
+      encoder_direction_2 = ENC_DIR_UNKNOWN;
+    }
+  }
+  else // A == B
+  {
+    if (encoder_direction_2 == ENC_DIR_CCW)
+    {
+      // Then, this is the second half of a rotation.  Set the encoder direction to
+      // unknown to set this up for the next rotation action.
+      encoder_direction_2 = ENC_DIR_UNKNOWN;
+      // And, because this is a CCW rotation, decrement the count.
+      inc_dec_2 = -1;
+    }
+    else
+    {
+      // ERROR!!
+      encoder_direction_2 = ENC_DIR_UNKNOWN;
+    }
+  }
+}
+
+void ISR_Encoder_2_B()
+{
+#if INCLUDE_DEBOUNCE_DELAY
+  delayMicroseconds(DDELAY); // Debounce delay [without this, there is a slightly greater incidence of [very] infrequent, +/- 1 count glitches]
+#endif
+
+  if (digitalRead(PIN_ENCODER_2_B) != digitalRead(PIN_ENCODER_2_A)) // A != B
+  {
+    if (encoder_direction_2 != ENC_DIR_CCW)
+    {
+      // This is where rotation direction is determined
+      encoder_direction_2 = ENC_DIR_CCW;
+    }
+    else if (encoder_direction_2 == ENC_DIR_CCW)
+    {
+      // This is either a bounce, OR the shaft rotation reversed before the B switch
+      // changed, so cancel any direction detection.
+      encoder_direction_2 = ENC_DIR_UNKNOWN;
+    }
+    else
+    {
+      // ERROR!!
+      encoder_direction_2 = ENC_DIR_UNKNOWN;
+    }
+  }
+  else // A == B
+  {
+    if (encoder_direction_2 == ENC_DIR_CW)
+    {
+      encoder_direction_2 = ENC_DIR_UNKNOWN;
+      inc_dec_2 = 1;
+    }
+    else
+    {
+      // ERROR!!
+      encoder_direction_2 = ENC_DIR_UNKNOWN;
+    }
+  }
+}
+
 
 // =========================================================
 //                         SETUP
@@ -170,13 +269,18 @@ void setup()
 {
   Serial.begin(115200); // Be sure to either change this to 9600, or change the setting on your terminal
 #if NO_EXT_PULLUPS
-  pinMode(PIN_ENCODER_A, INPUT_PULLUP);
-  pinMode(PIN_ENCODER_B, INPUT_PULLUP);
+  pinMode(PIN_ENCODER_1_A, INPUT_PULLUP);
+  pinMode(PIN_ENCODER_1_B, INPUT_PULLUP);
+  pinMode(PIN_ENCODER_2_A, INPUT_PULLUP);
+  pinMode(PIN_ENCODER_2_B, INPUT_PULLUP);
 #endif
-  pinMode(PIN_ENCODER_PB, INPUT_PULLUP);
+  pinMode(PIN_ENCODER_1_PB, INPUT_PULLUP);
+  pinMode(PIN_ENCODER_2_PB, INPUT_PULLUP);
 
-  attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_A), ISR_Encoder_A, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_B), ISR_Encoder_B, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_1_A), ISR_Encoder_1_A, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_1_B), ISR_Encoder_1_B, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_2_A), ISR_Encoder_2_A, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_2_B), ISR_Encoder_2_B, CHANGE);
 
   Serial.println("Welcome to the Encoder Test Sketch!");
 
@@ -193,50 +297,86 @@ void setup()
 // =========================================================
 void loop()
 {
-  // Test the Encoder Push Button
-  if (digitalRead(PIN_ENCODER_PB) == LOW)
+  // Test the Encoder Push Buttona
+  if (digitalRead(PIN_ENCODER_1_PB) == LOW)
+  {
+  }
+
+  if (digitalRead(PIN_ENCODER_2_PB) == LOW)
   {
   }
 
   // Provide feedback regarding the current encoder count and only update it
   // When the count has changed [either 1 or -1 -- if 0, it's ignored] -- so
   // there isn't a deluge of Serial data.
-  if (inc_dec != 0)
+  if ((inc_dec_1 != 0) || (inc_dec_2 != 0))
   {
-    update_count();
+    update_count_1();
+    update_count_2();
 
-    Serial.print("Count: ");
+    Serial.print("Count 1 : ");
     // Force the number colum to a consistant width of 2, so the graph has
     // consistant positioning.
-    if (String(da_count, DEC).length() == 1)
+    if (String(da_count_1, DEC).length() == 1)
     {
-      Serial.print(" " + String(da_count, DEC));
+      Serial.print(" " + String(da_count_1, DEC));
     }
     else
     {
-      Serial.print(da_count);
+      Serial.print(da_count_1);
     }
 
     Serial.print(" ");
-    Serial.println(graph.substring(0, da_count));
+    Serial.println(graph.substring(0, da_count_1));
+
+    Serial.print("Count 2 : ");
+    // Force the number colum to a consistant width of 2, so the graph has
+    // consistant positioning.
+    if (String(da_count_2, DEC).length() == 1)
+    {
+      Serial.print(" " + String(da_count_2, DEC));
+    }
+    else
+    {
+      Serial.print(da_count_2);
+    }
+
+    Serial.print(" ");
+    Serial.println(graph.substring(0, da_count_2));
   }
 }
 
 // =========================================================
 //                 Function Defnintions
 // =========================================================
-inline void update_count()
+inline void update_count_1()
 {
-  da_count += inc_dec;
-  inc_dec = 0; // So no more counting will occur until this is changed to either 1 or -1
+  da_count_1 += inc_dec_1;
+  inc_dec_1 = 0; // So no more counting will occur until this is changed to either 1 or -1
 
-  if (da_count > MAX_COUNT)
+  if (da_count_1 > MAX_COUNT)
   {
-    da_count = MAX_COUNT;
+    da_count_1 = MAX_COUNT;
   }
 
-  if (da_count < MIN_COUNT)
+  if (da_count_1 < MIN_COUNT)
   {
-    da_count = MIN_COUNT;
+    da_count_1 = MIN_COUNT;
+  }
+}
+
+inline void update_count_2()
+{
+  da_count_2 += inc_dec_2;
+  inc_dec_2 = 0; // So no more counting will occur until this is changed to either 1 or -1
+
+  if (da_count_2 > MAX_COUNT)
+  {
+    da_count_2 = MAX_COUNT;
+  }
+
+  if (da_count_2 < MIN_COUNT)
+  {
+    da_count_2 = MIN_COUNT;
   }
 }
