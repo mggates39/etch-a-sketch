@@ -1,44 +1,12 @@
-/***************************************************************************
- *                           Rotary Encoder Demo
- *                     
- * Demos a rotary encoder of the kind where it's two switches are at the same
- * state at rest [i.e. when shaft is not turning], and are at different states
- * when between detents. From one detent to another, one switch transitions,
- * at which point the two switches are in opposite states, then the other
- * switch transitions, and the two switches are at the same state.  For example:
- *          A  |  B
- * -----------------
- * Rest 1:  O  |  O
- * Trans 1: C  |  O
- * Rest 2:  C  |  C
- * Trans 2: O  |  C
- * Rest 3:  O  |  O
- *
- * Where 'O' = Open  &  'C' = Closed
- *
- * This demo increments in one direction, until a MAX_COUNT is reached,
- * then stays at that MAX_COUNT.  When rotated in the other direction, the count
- * decrements until it reaches zero, where it stays until rotated the other way.
- * Also, because it's hard to see glitchs in numbers [at least for some of us ;)]
- * I added a "graph".  Basically it's visual feedback, and makes glitches VERY
- * easy to see. 
- *
- * Note: I watched the switch transitions on a scope, and saw no switch bounce
- *       until I turned the encoder shaft REALLY fast.  In all other cases,
- *       it was VERY clean (though there must be the occasional bounce, because
- *       of the glitches that occur when the debounce delay is disabled)!  Not all
- *       encoders may be that clean, and perhaps, as rotary encoders ages, this
- *       might get worse -- stress testing might be prudent.
- *                     
- * Version 06: Most code in the Interrupt Handlers, except the update_count() func 
- *             call.  Works Great when debounce delay is active [only 200uS]! 
- *             Almost as good as Version 04 with debounce delay.  Very occational
- *             glitches, though.  But only +/- 1 count.
- *             But, if I rotate at a "resonable" rate, it's pretty clean. 
- *             This version is working much better than Version 05,
- *             especially with the debounce delay activated.  But, Version 04 is
- *             still the winner--by a slight margin!
- ***************************************************************************/
+/**************************************************************************
+  Etch-A-Sketch demo application
+  
+ **************************************************************************/
+
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 #define NO_EXT_PULLUPS true
 #define INCLUDE_DEBOUNCE_DELAY true
@@ -59,26 +27,32 @@
 const byte ENC_DIR_UNKNOWN = 0;
 const byte ENC_DIR_CW = 1;
 const byte ENC_DIR_CCW = 2;
-const int MAX_COUNT = 60;
+const int MAX_COUNT_1 = 128;
+const int MAX_COUNT_2 = 64;
 const int MIN_COUNT = 0;
 #if INCLUDE_DEBOUNCE_DELAY
 const unsigned long DDELAY = 200; // Number of uS for Debounce Delay
 #endif
 
-String graph = String(MAX_COUNT + 1);
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels was 64
+
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+#define OLED_RESET 4 // Reset pin # (or -1 if sharing Arduino reset pin)
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // =========================================================
 //                Parameters Encoder 1
 // =========================================================
 volatile byte encoder_direction_1 = ENC_DIR_UNKNOWN;
-int da_count_1 = 0;
+int da_count_1 = 64;
 volatile int inc_dec_1 = 0; // This serves both to modify the count AND to serve as an indication of a count change
 
 // =========================================================
 //                Parameters Encoder 2
 // =========================================================
 volatile byte encoder_direction_2 = ENC_DIR_UNKNOWN;
-int da_count_2 = 0;
+int da_count_2 = 32;
 volatile int inc_dec_2 = 0; // This serves both to modify the count AND to serve as an indication of a count change
 
 // =========================================================
@@ -261,13 +235,20 @@ void ISR_Encoder_2_B()
   }
 }
 
-
-// =========================================================
-//                         SETUP
-// =========================================================
 void setup()
 {
-  Serial.begin(115200); // Be sure to either change this to 9600, or change the setting on your terminal
+  Serial.begin(115200);
+
+  Serial.println(F("SSD1306 starting"));
+
+  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
+  { // Address 0x3D for 128x64 Address 0x3C for 128x32
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;)
+      ; // Don't proceed, loop forever
+  }
+
 #if NO_EXT_PULLUPS
   pinMode(PIN_ENCODER_1_A, INPUT_PULLUP);
   pinMode(PIN_ENCODER_1_B, INPUT_PULLUP);
@@ -282,67 +263,72 @@ void setup()
   attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_2_A), ISR_Encoder_2_A, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_2_B), ISR_Encoder_2_B, CHANGE);
 
-  Serial.println("Welcome to the Encoder Test Sketch!");
+  Serial.println("Welcome to the Etch-A-Sketch!");
 
-  // Fill graph string
-  graph = "";
-  for (int glen = 0; glen < MAX_COUNT; ++glen)
-  {
-    graph += "*";
-  }
+  // Show initial display buffer contents on the screen --
+  // the library initializes this with an Adafruit splash screen.
+  display.display();
+  delay(2000); // Pause for 2 seconds
+
+  // Clear the buffer
+  display.clearDisplay();
+
+  // Draw a single pixel in white in roughly the center of the screen
+  display.drawPixel(MAX_COUNT_1 - da_count_1, MAX_COUNT_2 - da_count_2, SSD1306_WHITE);
+
+  // Show the display buffer on the screen. You MUST call display() after
+  // drawing commands to make them visible on screen!
+  display.display();
+  delay(1000);
 }
 
-// =========================================================
-//                         LOOP
-// =========================================================
 void loop()
 {
-  // Test the Encoder Push Buttona
+
+  int x, y;
+
+  // Test the Encoder Push Button 1
   if (digitalRead(PIN_ENCODER_1_PB) == LOW)
   {
+    // flash the screen
+    display.invertDisplay(true);
+    delay(500);
+    display.invertDisplay(false);
+    delay(500);
   }
 
+  // Test the Encoder Push Button 2
   if (digitalRead(PIN_ENCODER_2_PB) == LOW)
   {
+    // Clear the screen
+    display.clearDisplay();
+    display.display();
   }
 
-  // Provide feedback regarding the current encoder count and only update it
-  // When the count has changed [either 1 or -1 -- if 0, it's ignored] -- so
-  // there isn't a deluge of Serial data.
   if ((inc_dec_1 != 0) || (inc_dec_2 != 0))
   {
+    x = MAX_COUNT_1 - da_count_1;
+    y = MAX_COUNT_2 - da_count_2;
+    display.drawPixel(x, y, SSD1306_WHITE);
+
     update_count_1();
     update_count_2();
+    x = MAX_COUNT_1 - da_count_1;
+    y = MAX_COUNT_2 - da_count_2;
 
-    Serial.print("Count 1 : ");
-    // Force the number colum to a consistant width of 2, so the graph has
-    // consistant positioning.
-    if (String(da_count_1, DEC).length() == 1)
-    {
-      Serial.print(" " + String(da_count_1, DEC));
-    }
-    else
-    {
-      Serial.print(da_count_1);
-    }
-
-    Serial.print(" ");
-    Serial.println(graph.substring(0, da_count_1));
-
-    Serial.print("Count 2 : ");
-    // Force the number colum to a consistant width of 2, so the graph has
-    // consistant positioning.
-    if (String(da_count_2, DEC).length() == 1)
-    {
-      Serial.print(" " + String(da_count_2, DEC));
-    }
-    else
-    {
-      Serial.print(da_count_2);
-    }
-
-    Serial.print(" ");
-    Serial.println(graph.substring(0, da_count_2));
+    // Draw a single pixel in white
+    display.drawPixel(x, y, SSD1306_WHITE);
+    display.display();
+    // drawValue(da_count_1);
+    // delay(100);
+  }
+  else
+  {
+    x = MAX_COUNT_1 - da_count_1;
+    y = MAX_COUNT_2 - da_count_2;
+    display.drawPixel(x, y, SSD1306_INVERSE);
+    display.display();
+    delay(200);
   }
 }
 
@@ -354,9 +340,9 @@ inline void update_count_1()
   da_count_1 += inc_dec_1;
   inc_dec_1 = 0; // So no more counting will occur until this is changed to either 1 or -1
 
-  if (da_count_1 > MAX_COUNT)
+  if (da_count_1 > MAX_COUNT_1)
   {
-    da_count_1 = MAX_COUNT;
+    da_count_1 = MAX_COUNT_1;
   }
 
   if (da_count_1 < MIN_COUNT)
@@ -370,9 +356,9 @@ inline void update_count_2()
   da_count_2 += inc_dec_2;
   inc_dec_2 = 0; // So no more counting will occur until this is changed to either 1 or -1
 
-  if (da_count_2 > MAX_COUNT)
+  if (da_count_2 > MAX_COUNT_2)
   {
-    da_count_2 = MAX_COUNT;
+    da_count_2 = MAX_COUNT_2;
   }
 
   if (da_count_2 < MIN_COUNT)
