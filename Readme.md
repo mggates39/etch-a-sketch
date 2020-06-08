@@ -34,8 +34,8 @@ Wire the first rotary encoder to the Arduino
 | GND | Ground | GND |
 | + | 5 Volts | 5v |
 | SW | shaft push | D4 |
-| DT | A closure | D3 |
-| CLK | B closure | D2 |
+| DT | B closure | D3 |
+| CLK | A closure | D2 |
 
 Wire the second rotary encoder to the Arduino
 
@@ -44,8 +44,8 @@ Wire the second rotary encoder to the Arduino
 | GND | Ground | GND |
 | + | 5 Volts | 5v |
 | SW | shaft push | D7 |
-| DT | A closure | D6 |
-| CLK | B closure | D5 |
+| DT | B closure | D6 |
+| CLK | A closure | D5 |
 
 Wire the OLED Display to the Arduino
 
