@@ -308,9 +308,14 @@ void loop()
   if ((inc_dec_1 != 0) || (inc_dec_2 != 0))
   {
     // redraw the last point in case it was inverted by the blink below
-    // The values of the encoders are subtracted from the max values to 
+    // The values of the encoders are subtracted from the max values to
     // reverse the screen since it is mounted upside down on my board
     // If you mount it rised side up you can just use da_count values
+    Serial.print("X=");
+    Serial.print(da_count_1);
+    Serial.print(" ");
+    Serial.print("Y=");
+    Serial.print(da_count_2);
     x = MAX_COUNT_1 - da_count_1;
     y = MAX_COUNT_2 - da_count_2;
     display.drawPixel(x, y, SSD1306_WHITE);
@@ -318,6 +323,11 @@ void loop()
     // Grab the latest encoder values
     update_count_1();
     update_count_2();
+    Serial.print(",  X=");
+    Serial.print(da_count_1);
+    Serial.print(" ");
+    Serial.print("Y=");
+    Serial.println(da_count_2);
     x = MAX_COUNT_1 - da_count_1;
     y = MAX_COUNT_2 - da_count_2;
 
@@ -327,7 +337,7 @@ void loop()
   }
   else
   {
-    // If neither encoder changed value, just blink the cursor 
+    // If neither encoder changed value, just blink the cursor
     // by inverting it every 200 milliseconds
     x = MAX_COUNT_1 - da_count_1;
     y = MAX_COUNT_2 - da_count_2;
