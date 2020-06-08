@@ -279,7 +279,6 @@ void setup()
   // Show the display buffer on the screen. You MUST call display() after
   // drawing commands to make them visible on screen!
   display.display();
-  delay(1000);
 }
 
 void loop()
@@ -305,25 +304,31 @@ void loop()
     display.display();
   }
 
+  // Check to see if either of the encodres have moved
   if ((inc_dec_1 != 0) || (inc_dec_2 != 0))
   {
+    // redraw the last point in case it was inverted by the blink below
+    // The values of the encoders are subtracted from the max values to 
+    // reverse the screen since it is mounted upside down on my board
+    // If you mount it rised side up you can just use da_count values
     x = MAX_COUNT_1 - da_count_1;
     y = MAX_COUNT_2 - da_count_2;
     display.drawPixel(x, y, SSD1306_WHITE);
 
+    // Grab the latest encoder values
     update_count_1();
     update_count_2();
     x = MAX_COUNT_1 - da_count_1;
     y = MAX_COUNT_2 - da_count_2;
 
-    // Draw a single pixel in white
+    // Draw a single pixel in white in the new location and push the screen buffer
     display.drawPixel(x, y, SSD1306_WHITE);
     display.display();
-    // drawValue(da_count_1);
-    // delay(100);
   }
   else
   {
+    // If neither encoder changed value, just blink the cursor 
+    // by inverting it every 200 milliseconds
     x = MAX_COUNT_1 - da_count_1;
     y = MAX_COUNT_2 - da_count_2;
     display.drawPixel(x, y, SSD1306_INVERSE);
