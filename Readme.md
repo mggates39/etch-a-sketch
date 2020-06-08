@@ -2,20 +2,21 @@
 An electronic etch-a-sketch
 
 ## Description 
-First cut is to just get the rotary enoder working. Then add a second encoder.  Finally the screen.  In this case
-it will be a 128x64 OLED as that is what I have.
+First cut is to just get the rotary enoder working. Then add a second encoder.  Finally add support for a screen.  In this case, it will be a 128x64 OLED that I already have.
 
-Got the initial wireing working and I noticed some inconsistencies with the data.  Reading on the forums, I found a fully interupt driven sample and tried it.
+Got the initial wiring working and I noticed some inconsistencies with the data.  Reading on the forums, I found a fully interupt driven sample and tried it.
 
 Now to add a second rotary encoder and make it display a graph right underneath the first one in the serial console.
 
-Adding an OLED 128x64 screen with an I2C interface.
+Adding the OLED 128x64 screen using the built in I2C interface.
+
+I needed to tweak the handling of the values from the encoders to allow me to invert the screen coordinates so when I view it upside down it works properly
 
 
 ## Parts 
 - 1 Arduino Nano Every
 - 2 CTY1052 Rotary Encoder
-- 1 OLED 128x64 screen w/I2C
+- 1 SSD1306 0.96" OLED screen w/I2C 128x64
 - 1 Breadboard
 - Assorted Jumper wires
 
@@ -56,9 +57,9 @@ Wire the OLED Display to the Arduino
 | SDA | Serial Data | SDA - A4 |
 
 
-## References ##
+## References
 - Initial Rotary Encoder code came from [Turtorial of Rotary Encoder with Arduino](https://www.instructables.com/id/Tutorial-of-Rotary-Encoder-With-Arduino/)
 
 - Discussion of missing data from rotary encoder [Aduino Forums](https://forum.arduino.cc/index.php?topic=552990.0)
 
-- Adafruit Libraries can be found in the IDE Library Managerd
+- Adafruit display libraries can be found in the IDE Library Manager
